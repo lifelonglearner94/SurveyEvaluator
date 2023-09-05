@@ -73,12 +73,12 @@ def split_text(text, max_width):
     return result
 
 # Function to sort DataFrame columns by median values
-def sortByMedian(unsorted_df):
+def sortByMedian(unsorted_df): # mean
     # Select only numeric columns
     numeric_df = unsorted_df.select_dtypes(include=['number'])
 
     # Calculate medians for numeric columns
-    medians = numeric_df.median()
+    medians = numeric_df.mean() # changed to mean !!!
 
     # Create a list of column names and their corresponding medians
     median_values = [(col, median) for col, median in medians.items()]
@@ -131,7 +131,7 @@ def visualize_and_save_as_pdf(firstDataFrame, secondDataFrame, firstPageText, pi
         plt.close(fig6)
 
         # Add boxplot explanation page to PDF
-        boxplotExplanation = 'About Boxplots:\n\nThe Box: The box represents the area where most of the data lies. The lower limit of the box shows the value below which 25% of the data lies. The upper limit of the box shows the value below which 75% of the data lies. This means that most of the scores lie between these two values.\n\nThe orange line in the middle: This is the median. The median is the value that divides the data in half. This means that 50% of the numbers are below this value and 50% are above this value.\n\nThe lines outside the box (the "whiskers"): These lines show how far the data spreads out. They extend to the outermost data points that are not considered "outliers". Outliers are values that are far away from the other values.\n\nPoints outside the whiskers: If there are individual points outside the whiskers, these could be outliers that are much higher or lower than most of the other scores.'
+        boxplotExplanation = 'About Boxplots:\n\nThe Box: The box represents the area where most of the data lies. The lower limit of the box shows the value below which 25% of the data lies. The upper limit of the box shows the value below which 75% of the data lies. This means that most of the scores lie between these two values.\n\nThe orange line in the middle: This is the median. The median is the value that divides the data in half. This means that 50% of the numbers are below this value and 50% are above this value.\n\nThe lines outside the box (the "whiskers"): These lines show how far the data spreads out. They extend to the outermost data points that are not considered "outliers". Outliers are values that are far away from the other values.\n\nPoints outside the whiskers: If there are individual points outside the whiskers,\nthese could be outliers that are much higher or lower than most of the other scores.'
         formatted_text = split_text(boxplotExplanation, 60)
         fig1, ax1 = plt.subplots()
         ax1.text(0.05, 0.95, formatted_text, ha='left', va='top', fontsize=14)
@@ -143,10 +143,11 @@ def visualize_and_save_as_pdf(firstDataFrame, secondDataFrame, firstPageText, pi
         # Add plot 1 (boxplots for numeric answers) to PDF
         fig2, ax2 = plt.subplots()
         ax2.boxplot(firstDataFrame)
-        ax2.set_title("Boxplots for numeric answers (sorted by median)", fontweight='bold')
+        ax2.set_title("Boxplots for numeric answers (sorted by mean value)", fontweight='bold')
         max_width = 11
         wrapped_labels = ['\n'.join(textwrap.wrap(label, width=max_width, break_long_words=False)) for label in firstDataFrame.columns]
         ax2.set_xticklabels(wrapped_labels)
+        plt.yticks([1, 2, 3, 4, 5])
         plt.tight_layout()
         fig2.set_size_inches(pagesize)
         pdf.savefig(fig2)
@@ -157,26 +158,32 @@ def visualize_and_save_as_pdf(firstDataFrame, secondDataFrame, firstPageText, pi
         ax3.boxplot(secondDataFrame)
         ax3.set_title("Boxplot for NPS", fontweight='bold')
         ax3.set_xticklabels(secondDataFrame.columns)
+        ax3.set_ylim(1, 11)
+        plt.yticks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         plt.tight_layout()
         fig3.set_size_inches(pagesize)
         pdf.savefig(fig3)
         plt.close(fig3)
 
 # Function to create boxplots for different groups (needs to be modified for PDF creation)
-def create_boxplots_for_groups(dataframe, group_column, value_columns):
+def create_boxplots_for_groups(dataframe, group_column):
     grouped = dataframe.groupby(group_column)
 
     for group_name, group_data in grouped:
-        print(group_data)
+        
         sorted_group_data = sortByMedian(group_data)
+        
         fig, ax = plt.subplots()
-        data_to_plot = [sorted_group_data[col] for col in value_columns]
-        ax.boxplot(data_to_plot, labels=value_columns)
-        wrapped_labels = ['\n'.join(textwrap.wrap(label, width=11, break_long_words=False)) for label in value_columns]
-        plt.title(f'Boxplots for Team {group_name}', fontweight='bold')
+        data_to_plot = [sorted_group_data[col] for col in sorted_group_data.columns]
+        ax.boxplot(data_to_plot, labels=sorted_group_data.columns)
+        wrapped_labels = ['\n'.join(textwrap.wrap(label, width=11, break_long_words=False)) for label in sorted_group_data.columns]
+        plt.title(f'Boxplots for Team {group_name}\n(sorted by mean value)', fontweight='bold')
         ax.set_xticklabels(wrapped_labels)
-        plt.xticks(range(1, len(value_columns) + 1), wrapped_labels)
-        plt.show()
+        plt.yticks([1, 2, 3, 4, 5])
+        plt.xticks(range(1, len(sorted_group_data.columns) + 1), wrapped_labels)
+        plt.tight_layout()
+        fig.savefig(f'output\Survey_Report_{group_name}_September_2023.pdf')
+        
 
 # Main function
 def main():
@@ -208,9 +215,17 @@ def main():
     
     # Extract data for NPS (Net Promoter Score) boxplot
     NPS_df = rawDataFrame[['NPS (MAYD Recommendation)']].copy()
-
+    print(NPS_df['NPS (MAYD Recommendation)'].median())
     # Prepare numeric data by converting it to integers
     columns_with_numeric_data_int = dataPreparation(rawDataFrame)
+
+    print(columns_with_numeric_data_int)
+    exit()
+
+    #print(columns_with_numeric_data_int["Recognition and Appreciation (company)"].median())
+    #print(columns_with_numeric_data_int["Skill Utilization"].median())
+    #print(columns_with_numeric_data_int["Recognition and Appreciation (company)"].corr(columns_with_numeric_data_int["Skill Utilization"]))
+    #exit()
 
     # Sort numeric data columns by median values
     sorted_columns_with_numeric_data_int = sortByMedian(columns_with_numeric_data_int)
@@ -221,8 +236,8 @@ def main():
     ############################# Teamevaluation starts ###################################
     columns_with_numeric_data_int['Team'] = rawDataFrame['Team']
 
-    # Call a function to create boxplots for different teams (needs modification for PDF creation)
-    # create_boxplots_for_groups(columns_with_numeric_data_int, 'Team', ["Recognition and Appreciation (company)", "Recognition and Appreciation (colleagues)", 'Teamwork and Collaboration', 'Skill Utilization', 'Technology and Tools'])
+    # Call a function to create boxplots for different teams
+    create_boxplots_for_groups(columns_with_numeric_data_int, 'Team')
 
 if __name__ == "__main__":
     main()
