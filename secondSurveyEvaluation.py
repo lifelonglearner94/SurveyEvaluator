@@ -219,13 +219,7 @@ def main():
     # Prepare numeric data by converting it to integers
     columns_with_numeric_data_int = dataPreparation(rawDataFrame)
 
-    print(columns_with_numeric_data_int)
-    exit()
-
-    #print(columns_with_numeric_data_int["Recognition and Appreciation (company)"].median())
-    #print(columns_with_numeric_data_int["Skill Utilization"].median())
-    #print(columns_with_numeric_data_int["Recognition and Appreciation (company)"].corr(columns_with_numeric_data_int["Skill Utilization"]))
-    #exit()
+   
 
     # Sort numeric data columns by median values
     sorted_columns_with_numeric_data_int = sortByMedian(columns_with_numeric_data_int)
