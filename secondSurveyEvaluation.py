@@ -6,6 +6,13 @@ import matplotlib.pyplot as plt  # For creating plots
 import textwrap  # For wrapping text
 from matplotlib.backends.backend_pdf import PdfPages  # For creating PDFs
 
+from datetime import datetime
+
+def aktuelles_datum():
+    heute = datetime.now()
+    datum_string = heute.strftime("%B_%Y")  # Formatierung für Monat und Jahr
+    return datum_string
+
 # Function to read the latest CSV file in a specified folder into a DataFrame
 def read_csv_to_pandas(folder_path):
     # Find all CSV files in the specified folder and sort them by modification time
@@ -94,7 +101,7 @@ def sortByMedian(unsorted_df): # mean
 # Function to visualize and save data as a PDF
 def visualize_and_save_as_pdf(firstDataFrame, secondDataFrame, firstPageText, pieData):
     pagesize = (12, 8.27)
-    with PdfPages('Survey_Report_Entire_Tech_September_2023.pdf') as pdf:
+    with PdfPages(f'Survey_Report_Entire_Tech_{aktuelles_datum()}.pdf') as pdf:
         # Add text page to PDF
         fig0, ax0 = plt.subplots()
         ax0.text(0.5, 0.5, firstPageText, ha='center', va='center', fontsize=20)
@@ -122,13 +129,13 @@ def visualize_and_save_as_pdf(firstDataFrame, secondDataFrame, firstPageText, pi
         plt.close(fig5)
 
         # Add third pie chart
-        WL_counts = pieData['Work location'].value_counts()
-        fig6, ax6 = plt.subplots()
-        ax6.pie(WL_counts, labels=WL_counts.index, autopct='%1.1f%%', startangle=90)
-        ax6.set_title('Work location', fontweight='bold')
-        fig6.set_size_inches(pagesize)
-        pdf.savefig(fig6)
-        plt.close(fig6)
+        #WL_counts = pieData['Work location'].value_counts()
+        #fig6, ax6 = plt.subplots()
+        #ax6.pie(WL_counts, labels=WL_counts.index, autopct='%1.1f%%', startangle=90)
+        #ax6.set_title('Work location', fontweight='bold')
+        #fig6.set_size_inches(pagesize)
+       # pdf.savefig(fig6)
+       # plt.close(fig6)
 
         # Add boxplot explanation page to PDF
         boxplotExplanation = 'About Boxplots:\n\nThe Box: The box represents the area where most of the data lies. The lower limit of the box shows the value below which 25% of the data lies. The upper limit of the box shows the value below which 75% of the data lies. This means that most of the scores lie between these two values.\n\nThe orange line in the middle: This is the median. The median is the value that divides the data in half. This means that 50% of the numbers are below this value and 50% are above this value.\n\nThe lines outside the box (the "whiskers"): These lines show how far the data spreads out. They extend to the outermost data points that are not considered "outliers". Outliers are values that are far away from the other values.\n\nPoints outside the whiskers: If there are individual points outside the whiskers,\nthese could be outliers that are much higher or lower than most of the other scores.'
@@ -177,23 +184,33 @@ def create_boxplots_for_groups(dataframe, group_column):
         data_to_plot = [sorted_group_data[col] for col in sorted_group_data.columns]
         ax.boxplot(data_to_plot, labels=sorted_group_data.columns)
         wrapped_labels = ['\n'.join(textwrap.wrap(label, width=11, break_long_words=False)) for label in sorted_group_data.columns]
-        plt.title(f'Boxplots for Team {group_name}\n(sorted by mean value)', fontweight='bold')
+        plt.title(f'Boxplots for Team {group_name}\n(sorted by mean value)\nn = {sorted_group_data.index.size}', fontweight='bold')
         ax.set_xticklabels(wrapped_labels)
         plt.yticks([1, 2, 3, 4, 5])
         plt.xticks(range(1, len(sorted_group_data.columns) + 1), wrapped_labels)
         plt.tight_layout()
-        fig.savefig(f'output\Survey_Report_{group_name}_September_2023.pdf')
+        fig.savefig(f'Teams_Breakdown_output\Survey_Report_{group_name}_{aktuelles_datum()}.pdf')
         
 
 # Main function
 def main():
+    if not os.path.exists('DataInput'):
+    # Der Ordner existiert nicht, also erstellen wir ihn
+        os.makedirs('DataInput')
+    
     data_input_folder = 'DataInput'
+
+    if not os.path.exists('Teams_Breakdown_output'):
+    # Der Ordner existiert nicht, also erstellen wir ihn
+        os.makedirs('Teams_Breakdown_output')
 
     # Read CSV data into a DataFrame
     rawDataFrame = read_csv_to_pandas(data_input_folder)
 
+    percentage_participation = rawDataFrame.index.size / 39 * 100
+
     # Define the text for the first page of the PDF
-    firstPageText = f'Tech satisfaction survey\nSeptember 2023\nn = {rawDataFrame.index.size} of ~39'
+    firstPageText = f'Tech satisfaction survey\n{aktuelles_datum()}\nn = {rawDataFrame.index.size} of ~39 ({round(percentage_participation,2)} %)'
 
     # Rename columns for better readability
     numeric_columns_mapping = {
@@ -211,11 +228,11 @@ def main():
     rawDataFrame.rename(columns=numeric_columns_mapping, inplace=True)
 
     # Extract data for pie charts
-    pieData = rawDataFrame[['Team','Length of employment','Work location']].copy()
+    pieData = rawDataFrame[['Team','Length of employment']].copy()
     
     # Extract data for NPS (Net Promoter Score) boxplot
     NPS_df = rawDataFrame[['NPS (MAYD Recommendation)']].copy()
-    print(NPS_df['NPS (MAYD Recommendation)'].median())
+    
     # Prepare numeric data by converting it to integers
     columns_with_numeric_data_int = dataPreparation(rawDataFrame)
 
